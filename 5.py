@@ -289,7 +289,7 @@ async def update_event(id: int, event: EventEdit):
                     await connection.commit()
                     return JSONResponse("Event has been updated.", status_code=status.HTTP_200_OK)
                 else:
-                    raise HTTPException(status_code=404, detail="Event not found")
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
             else:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                     detail='User hasn`t permissions for edit event')
@@ -326,7 +326,7 @@ async def update_date(id: int, user: str = Query(...), datetime_: FutureDatetime
                     await connection.commit()
                     return JSONResponse("Event has been updated.", status_code=status.HTTP_200_OK)
                 else:
-                    raise HTTPException(status_code=404, detail="Event not found")
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
             else:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                     detail='User hasn`t permissions for edit event')
@@ -417,7 +417,7 @@ async def delete_event(event_id: int, user: str = Query(...)):
                     await connection.commit()
                     return JSONResponse("Event has been deleted.", status_code=status.HTTP_201_CREATED)
                 else:
-                    raise HTTPException(status_code=404, detail="Task not found")
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
             else:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                     detail='User hasn`t permissions for create event')
