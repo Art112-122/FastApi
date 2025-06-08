@@ -60,16 +60,13 @@ class User(BaseModel):
     @field_validator('password', mode='before')
     def validate_password(cls, v: str) -> str:
         if not any(c.islower() for c in v):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Password must contain at least one lowercase letter")
+            raise ValueError("Password must contain at least one lowercase letter")
         if not any(c.isupper() for c in v):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Password must contain at least one uppercase letter")
+            raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.isdigit() for c in v):
-            HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must contain at least one digit")
+            raise ValueError("Password must contain at least one digit")
         if not any(c in "!@#$%^&*()_-+=[]{}|\\:;\"'<>,.?/~`" for c in v):
-            HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                          detail="Password must contain at least one special character")
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
@@ -143,8 +140,8 @@ app = FastAPI(title="Books api", lifespan=create_tables)
 
 @app.post("/books/add/")
 async def create_book(book: Book):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -156,13 +153,16 @@ async def create_book(book: Book):
         await connection.commit()
         return JSONResponse("Book has been added.", status_code=status.HTTP_201_CREATED)
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.post("/events/add/")
 async def create_event(event: Event):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -188,16 +188,19 @@ async def create_event(event: Event):
         await connection.commit()
         return JSONResponse("Event has been added.", status_code=status.HTTP_201_CREATED)
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.post("/users/add/")
 async def create_user(user: User):
+    connection = await get_mysql_connection()
     try:
         user.check_letters(user.name)
         user.check_letters(user.surname)
         user.validate_password(user.password)
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -211,61 +214,77 @@ async def create_user(user: User):
     except aiomysql.IntegrityError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.get("/books/get")
 async def get_all_books():
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
+
         cursor = await connection.cursor(aiomysql.DictCursor)
         await cursor.execute("SELECT * FROM books;")
         resp = await cursor.fetchall()
         return resp
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.get("/event/get")
 async def get_all_events():
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor = await connection.cursor(aiomysql.DictCursor)
         await cursor.execute("SELECT * FROM event;")
         resp = await cursor.fetchall()
         return resp
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.get("/books/get/{book_id}")
 async def get_for_id_book(book_id):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor = await connection.cursor(aiomysql.DictCursor)
         await cursor.execute("SELECT * FROM books WHERE id = %s;", (book_id,))
         resp = await cursor.fetchall()
         return resp
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.get("/event/get/{event_id}")
 async def get_for_id_event(event_id):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor = await connection.cursor(aiomysql.DictCursor)
         await cursor.execute("SELECT * FROM event WHERE id = %s;", (event_id,))
         resp = await cursor.fetchall()
         return resp
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.put("/event/update/{id}")
 async def update_event(id: int, event: EventEdit):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -296,13 +315,16 @@ async def update_event(id: int, event: EventEdit):
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.patch("/event/update/{id}/reschedule")
 async def update_date(id: int, user: str = Query(...), datetime_: FutureDatetime = Query(...)):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -333,13 +355,16 @@ async def update_date(id: int, user: str = Query(...), datetime_: FutureDatetime
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.patch("/event/update/{id}/rsvp")
 async def update_members(id: int, user: str = Query(...), member_id: int = Query(...)):
+    connection = await get_mysql_connection()
     try:
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -386,14 +411,16 @@ async def update_members(id: int, user: str = Query(...), member_id: int = Query
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 @app.delete("/event/delete/{event_id}")
 async def delete_event(event_id: int, user: str = Query(...)):
+    connection = await get_mysql_connection()
     try:
-
-        connection = await get_mysql_connection()
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
@@ -424,7 +451,10 @@ async def delete_event(event_id: int, user: str = Query(...)):
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
     except aiomysql.Error as e:
-        raise e
+        raise HTTPException(500, f"Database error {e}")
+    finally:
+        if connection is not None:
+            await connection.ensure_closed()
 
 
 if __name__ == "__main__":
