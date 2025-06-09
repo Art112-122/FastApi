@@ -386,7 +386,7 @@ async def update_members(id: int, user: str = Query(...), member_id: int = Query
                     answer = await cursor.fetchone()
                     if isinstance(answer, tuple):
                         list_ = f"{check[0]}".split(",")
-                        if answer[0] not in list_:
+                        if str(answer[0]) not in list_:
 
                             await cursor.execute(
                                 """UPDATE event
