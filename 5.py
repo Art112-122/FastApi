@@ -48,16 +48,15 @@ class User(BaseModel):
     phone: str = Field(..., pattern=r"\+?\d{10,15}")
     is_admin: bool = Field(default=False)
 
-    @classmethod
     @field_validator('name', 'surname', mode='before')
+    @classmethod
     def check_letters(cls, value: str) -> str:
         if any(char.isdigit() for char in value):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Fields 'name' and 'surname' must not contain numbers")
+            raise ValueError("Fields 'name' and 'surname' must not contain numbers")
         return value
 
-    @classmethod
     @field_validator('password', mode='before')
+    @classmethod
     def validate_password(cls, v: str) -> str:
         if not any(c.islower() for c in v):
             raise ValueError("Password must contain at least one lowercase letter")
@@ -198,9 +197,6 @@ async def create_event(event: Event):
 async def create_user(user: User):
     connection = await get_mysql_connection()
     try:
-        user.check_letters(user.name)
-        user.check_letters(user.surname)
-        user.validate_password(user.password)
         cursor: aiomysql.Cursor = await connection.cursor()
         await cursor.execute(
             """
