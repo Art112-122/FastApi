@@ -137,7 +137,18 @@ async def create_tables(_: FastAPI):
 app = FastAPI(title="Books api", lifespan=create_tables)
 
 
-@app.post("/books/add/")
+@app.post("/books/add/",
+          status_code=status.HTTP_201_CREATED,
+          tags=["books"],
+          summary="Book creation",
+          description="Endpoint use for book create",
+          responses={
+              201: {"description": "Success. Book created"},
+              500: {"description": "Database error"},
+          },
+          operation_id="create-book",
+          include_in_schema=True,
+          name="book_add")
 async def create_book(book: Book):
     connection = await get_mysql_connection()
     try:
@@ -158,7 +169,20 @@ async def create_book(book: Book):
             await connection.ensure_closed()
 
 
-@app.post("/events/add/")
+@app.post("/events/add/",
+          status_code=status.HTTP_201_CREATED,
+          tags=["events"],
+          summary="Event creation",
+          description="Endpoint use for event create",
+          responses={
+              201: {"description": "Success. Event created"},
+              403: {"description": "User hasn`t permissions"},
+              404: {"description": "User not found"},
+              500: {"description": "Database error"},
+          },
+          operation_id="create-book",
+          include_in_schema=True,
+          name="book_add")
 async def create_event(event: Event):
     connection = await get_mysql_connection()
     try:
@@ -193,7 +217,18 @@ async def create_event(event: Event):
             await connection.ensure_closed()
 
 
-@app.post("/users/add/")
+@app.post("/users/add/",
+          status_code=status.HTTP_201_CREATED,
+          tags=["users"],
+          summary="User registration",
+          description="Endpoint use for register user",
+          responses={
+              201: {"description": "Success. User created"},
+              500: {"description": "Database error"},
+          },
+          operation_id="register-user",
+          include_in_schema=True,
+          name="user_add")
 async def create_user(user: User):
     connection = await get_mysql_connection()
     try:
@@ -216,7 +251,18 @@ async def create_user(user: User):
             await connection.ensure_closed()
 
 
-@app.get("/books/get")
+@app.get("/books/get",
+         status_code=status.HTTP_200_OK,
+         tags=["books"],
+         summary="Books getter",
+         description="Endpoint use get all books",
+         responses={
+             200: {"description": "Selected"},
+             500: {"description": "Database error"},
+         },
+         operation_id="books-all",
+         include_in_schema=True,
+         name="books-all")
 async def get_all_books():
     connection = await get_mysql_connection()
     try:
@@ -232,7 +278,18 @@ async def get_all_books():
             await connection.ensure_closed()
 
 
-@app.get("/event/get")
+@app.get("/event/get",
+         status_code=status.HTTP_200_OK,
+         tags=["events"],
+         summary="Events getter",
+         description="Endpoint use get all events",
+         responses={
+             200: {"description": "Selected"},
+             500: {"description": "Database error"},
+         },
+         operation_id="events-all",
+         include_in_schema=True,
+         name="events-all")
 async def get_all_events():
     connection = await get_mysql_connection()
     try:
@@ -247,13 +304,24 @@ async def get_all_events():
             await connection.ensure_closed()
 
 
-@app.get("/books/get/{book_id}")
+@app.get("/books/get/{book_id}",
+         status_code=status.HTTP_200_OK,
+         tags=["books"],
+         summary="Book get",
+         description="Endpoint use get books by id",
+         responses={
+             200: {"description": "Selected"},
+             500: {"description": "Database error"},
+         },
+         operation_id="books-id",
+         include_in_schema=True,
+         name="books-id")
 async def get_for_id_book(book_id):
     connection = await get_mysql_connection()
     try:
         cursor = await connection.cursor(aiomysql.DictCursor)
         await cursor.execute("SELECT * FROM books WHERE id = %s;", (book_id,))
-        resp = await cursor.fetchall()
+        resp = await cursor.fetchone()
         return resp
     except aiomysql.Error as e:
         raise HTTPException(500, f"Database error {e}")
@@ -262,7 +330,18 @@ async def get_for_id_book(book_id):
             await connection.ensure_closed()
 
 
-@app.get("/event/get/{event_id}")
+@app.get("/event/get/{event_id}",
+         status_code=status.HTTP_200_OK,
+         tags=["events"],
+         summary="Event get",
+         description="Endpoint use get books by id",
+         responses={
+             200: {"description": "Selected"},
+             500: {"description": "Database error"},
+         },
+         operation_id="event-id",
+         include_in_schema=True,
+         name="event-id")
 async def get_for_id_event(event_id):
     connection = await get_mysql_connection()
     try:
@@ -277,7 +356,20 @@ async def get_for_id_event(event_id):
             await connection.ensure_closed()
 
 
-@app.put("/event/update/{id}")
+@app.put("/event/update/{id}",
+         status_code=status.HTTP_201_CREATED,
+         tags=["events"],
+         summary="Update event",
+         description="Endpoint use update event by id",
+         responses={
+             201: {"description": "Updated"},
+             403: {"description": "User hasn`t permissions"},
+             404: {"description": "Not found"},
+             500: {"description": "Database error"},
+         },
+         operation_id="event-update",
+         include_in_schema=True,
+         name="event-update")
 async def update_event(id: int, event: EventEdit):
     connection = await get_mysql_connection()
     try:
@@ -302,7 +394,7 @@ async def update_event(id: int, event: EventEdit):
                               WHERE id = %s;""",
                         (event.title, event.description, id))
                     await connection.commit()
-                    return JSONResponse("Event has been updated.", status_code=status.HTTP_200_OK)
+                    return JSONResponse("Event has been updated.", status_code=status.HTTP_201_CREATED)
                 else:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
             else:
@@ -317,7 +409,20 @@ async def update_event(id: int, event: EventEdit):
             await connection.ensure_closed()
 
 
-@app.patch("/event/update/{id}/reschedule")
+@app.patch("/event/update/{id}/reschedule",
+           status_code=status.HTTP_201_CREATED,
+           tags=["events"],
+           summary="Update event date",
+           description="Endpoint use to update event date by id",
+           responses={
+               201: {"description": "Updated"},
+               403: {"description": "User hasn`t permissions"},
+               404: {"description": "Not found"},
+               500: {"description": "Database error"},
+           },
+           operation_id="event-update-datetime",
+           include_in_schema=True,
+           name="event-update-datetime")
 async def update_date(id: int, user: str = Query(...), datetime_: FutureDatetime = Query(...)):
     connection = await get_mysql_connection()
     try:
@@ -357,7 +462,21 @@ async def update_date(id: int, user: str = Query(...), datetime_: FutureDatetime
             await connection.ensure_closed()
 
 
-@app.patch("/event/update/{id}/rsvp")
+@app.patch("/event/update/{id}/rsvp",
+           status_code=status.HTTP_201_CREATED,
+           tags=["events"],
+           summary="Add member to event",
+           description="Endpoint use to add member for event by id",
+           responses={
+               201: {"description": "Updated"},
+               403: {"description": "User hasn`t permissions"},
+               404: {"description": "Not found"},
+               409: {"description": "Member already exists"},
+               500: {"description": "Database error"},
+           },
+           operation_id="event-update-datetime",
+           include_in_schema=True,
+           name="event-update-datetime")
 async def update_members(id: int, user: str = Query(...), member_id: int = Query(...)):
     connection = await get_mysql_connection()
     try:
@@ -413,7 +532,20 @@ async def update_members(id: int, user: str = Query(...), member_id: int = Query
             await connection.ensure_closed()
 
 
-@app.delete("/event/delete/{event_id}")
+@app.delete("/event/delete/{event_id}",
+            status_code=status.HTTP_202_ACCEPTED,
+            tags=["events"],
+            summary="Delete event",
+            description="Endpoint use to delete event by id",
+            responses={
+                202: {"description": "Deleted"},
+                403: {"description": "User hasn`t permissions"},
+                404: {"description": "Not found"},
+                500: {"description": "Database error"},
+            },
+            operation_id="event-update-datetime",
+            include_in_schema=True,
+            name="event-update-datetime")
 async def delete_event(event_id: int, user: str = Query(...)):
     connection = await get_mysql_connection()
     try:
