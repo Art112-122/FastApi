@@ -180,7 +180,7 @@ async def create_book(book: Book):
               404: {"description": "User not found"},
               500: {"description": "Database error"},
           },
-          operation_id="create-book",
+          operation_id="create-event",
           include_in_schema=True,
           name="book_add")
 async def create_event(event: Event):
@@ -474,9 +474,9 @@ async def update_date(id: int, user: str = Query(...), datetime_: FutureDatetime
                409: {"description": "Member already exists"},
                500: {"description": "Database error"},
            },
-           operation_id="event-update-datetime",
+           operation_id="event-update-users",
            include_in_schema=True,
-           name="event-update-datetime")
+           name="event-update-users")
 async def update_members(id: int, user: str = Query(...), member_id: int = Query(...)):
     connection = await get_mysql_connection()
     try:
@@ -543,9 +543,9 @@ async def update_members(id: int, user: str = Query(...), member_id: int = Query
                 404: {"description": "Not found"},
                 500: {"description": "Database error"},
             },
-            operation_id="event-update-datetime",
+            operation_id="event-delete",
             include_in_schema=True,
-            name="event-update-datetime")
+            name="event-delete")
 async def delete_event(event_id: int, user: str = Query(...)):
     connection = await get_mysql_connection()
     try:
